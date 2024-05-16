@@ -103,39 +103,22 @@ function App() {
 
   const generatePDF = async () => {
     const pdfDoc = await PDFDocument.create();
-    const pageWidth = 595; // Typical width for PDF pages (A4)
-    const pageHeight = 842; // Typical height for PDF pages (A4)
-
     for (const page of pages) {
-      const pdfPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      const pdfPage = pdfDoc.addPage();
       if (page.content) {
-        try {
-          const response = await fetch(page.content);
-          if (!response.ok)
-            throw new Error(`Failed to fetch image: status ${response.status}`);
-          const imageBytes = await response.arrayBuffer();
-
-          let embeddedImage;
-          if (page.content.endsWith(".jpg") || page.content.endsWith(".jpeg")) {
-            embeddedImage = await pdfDoc.embedJpg(imageBytes);
-          } else if (page.content.endsWith(".png")) {
-            embeddedImage = await pdfDoc.embedPng(imageBytes);
-          }
-
-          pdfPage.drawImage(embeddedImage, {
-            x: 0,
-            y: 0,
-            width: pageWidth,
-            height: pageHeight,
-          });
-        } catch (error) {
-          console.error("Error fetching or embedding image:", error);
-          // Optionally add fallback behavior or additional error handling here
-        }
+        const imageBytes = await fetch(page.content).then((res) =>
+          res.arrayBuffer()
+        );
+        const image = await pdfDoc.embedJpg(imageBytes);
+        pdfPage.drawImage(image, {
+          x: 0,
+          y: 0,
+          width: pdfPage.getWidth(),
+          height: pdfPage.getHeight(),
+        });
       }
-      pdfPage.drawText(page.text || "", { x: 50, y: 800, size: 18 });
+      pdfPage.drawText(page.text || "", { x: 50, y: 50, size: 18 });
     }
-
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     const link = document.createElement("a");
