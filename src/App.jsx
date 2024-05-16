@@ -4,24 +4,11 @@ import { useDropzone } from "react-dropzone";
 import axios from "axios";
 
 function App() {
+  const initialPages = [
+    { id: "front", content: "", type: "cover", label: "Front Cover", text: "" },
+  ];
   const [pages, setPages] = useState(
-    () =>
-      JSON.parse(localStorage.getItem("pages")) || [
-        {
-          id: "front",
-          content: "",
-          type: "cover",
-          label: "Front Cover",
-          text: "",
-        },
-        {
-          id: "back",
-          content: "",
-          type: "cover",
-          label: "Back Cover",
-          text: "",
-        },
-      ]
+    () => JSON.parse(localStorage.getItem("pages")) || initialPages
   );
   const [currentId, setCurrentId] = useState("front");
   const [errorMessage, setErrorMessage] = useState("");
@@ -82,15 +69,44 @@ function App() {
   };
 
   const handleAddPage = () => {
-    const newPage = {
-      id: `page${pages.length}`,
-      content: "",
-      type: "content",
-      label: `Page ${pages.length - 1}`,
-      text: "",
-    };
-    setPages([...pages, newPage]);
-    setCurrentId(newPage.id);
+    const currentPage = pages.find((page) => page.id === currentId);
+    if (
+      !currentPage.content ||
+      (currentPage.type === "content" && !currentPage.text)
+    ) {
+      setErrorMessage(
+        "Please complete the current page before adding a new one."
+      );
+      return;
+    }
+    if (currentPage.id === "front" && pages.length === 1) {
+      const backCover = {
+        id: "back",
+        content: "",
+        type: "cover",
+        label: "Back Cover",
+        text: "",
+      };
+      setPages([...pages, backCover]);
+      setCurrentId(backCover.id);
+    } else {
+      const newPage = {
+        id: `page${pages.length}`,
+        content: "",
+        type: "content",
+        label: `Page ${pages.length}`,
+        text: "",
+      };
+      setPages([...pages, newPage]);
+      setCurrentId(newPage.id);
+    }
+    setErrorMessage("");
+  };
+
+  const handleClearAll = () => {
+    setPages([...initialPages]);
+    setCurrentId("front");
+    setErrorMessage("");
   };
 
   const handleTextChange = (text) => {
@@ -152,7 +168,10 @@ function App() {
             onClick={() => setCurrentId(page.id)}
           >
             <img
-              src={page.content || "placeholder.jpg"}
+              src={
+                page.content ||
+                "https://static.vecteezy.com/system/resources/previews/007/126/739/non_2x/question-mark-icon-free-vector.jpg"
+              } // Placeholder if no content
               alt={page.label}
               style={{ width: "100%", height: "auto" }}
             />
@@ -184,14 +203,20 @@ function App() {
         <textarea
           value={getCurrentPage().text}
           onChange={(e) => handleTextChange(e.target.value)}
-          style={{ width: "100px", height: "100px" }}
+          style={{ width: "100%", height: "100px" }}
         />
-        <button onClick={handleAddPage} style={{ marginTop: "20px" }}>
-          Add New Page
-        </button>
-        <button onClick={generatePDF} style={{ marginTop: "20px" }}>
-          Generate PDF
-        </button>
+        <div style={{ marginTop: "20px" }}>
+          <button onClick={handleAddPage} style={{ marginRight: "10px" }}>
+            Add New Page
+          </button>
+          <button onClick={generatePDF} style={{ marginRight: "10px" }}>
+            Generate PDF
+          </button>
+          <button onClick={handleClearAll}>Clear All</button>
+        </div>
+        {errorMessage && (
+          <div style={{ color: "red", marginTop: "10px" }}>{errorMessage}</div>
+        )}
       </div>
     </div>
   );
